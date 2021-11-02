@@ -1,0 +1,117 @@
+---
+title: "Stout Case Study #1"
+author: "Lily Wang"
+date: "10/31/2021"
+output: html_document
+---
+
+```{r}
+#loading dataset
+loans <- read.csv('/Users/coolegg/Desktop/case/loans_full_schema.csv')
+library(tidyverse)
+#inspecting the dataset
+#head(loans)
+#dim(loans)
+#summary(loans)
+```
+
+### Questions
+## Observations + Issues
+This dataset describes loans made through the Lending Club platform. There are 10,000 rows each representing a loan. There are 55 columns describing each loan. At first glance, the dataset has many missing values. For example, in row 6, the emp_title is missing and there's an "NA" for emp_length. In the verified_income column, there is confusion since there is "verified" and "source verified". It should just be a binary with verified or not verified. There are also several outliers that seem interesting. In num_historical_failed_to_pay, the mean is 0.1671 while the max is 52.
+
+
+## Visualizations
+I am interested in exploring the total amount of credit lines people tend to open and what kind of characteristics might influence that. First, I am just looking at a bar graph of total credit lines
+```{r}
+ggplot(loans, aes(x=total_credit_lines))+
+  geom_bar() +
+  ggtitle("Count of Total Credit Lines") +
+  theme(panel.background = element_rect(colour = "#6D9EC1"))
+```
+
+I am speculating that annual income and paid late fees might be related to total credit lines. 
+
+```{r}
+#loans$annual_income
+#there seems to be a big range in income so I am going to factor it so the graph can be easier to read
+cleared_income <- loans %>%
+  drop_na(annual_income)
+income_levels <- cut(loans$annual_income, breaks = c(0, 45000, 65000, 95000, 2300000),labels = c("1st", "2nd", "3rd", "4th"))
+```
+
+```{r}
+ggplot(loans$income_levels,aes(x=income_levels)) +
+         geom_bar(fill = "#FFDB6D", color = "#C4961A") + 
+         ggtitle("Count of Income Levels by Quantile") + 
+         theme(panel.background = element_rect(colour = "#6D9EC1"))
+#I am not sure why there still is a NA when it doesn't seem to have any in the data. If I had more time I would explore this further. 
+```
+
+Now that levels have been created, I can continue to create my visualizations. 
+
+```{r}
+ggplot(loans, aes(x=total_credit_lines, color=income_levels)) +
+  geom_bar() + 
+  ggtitle("Total Credit Lines by Income Quantile") +
+  theme(panel.background = element_rect(colour = "#6D9EC1"))
+```
+It seems that the average credit lines all four income quantiles have is around 25. However, there's a significantly higher count of credit lines the in the lower income levels compared to higher ones. 
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+loans$paid_late_fees[loans$paid_late_fees==0] <- NA
+exclude_late<- loans %>%
+  drop_na(paid_late_fees)
+```
+
+```{r}
+ggplot(exclude_late, aes(x=paid_late_fees, y=total_credit_lines)) +
+  geom_point() + 
+  ggtitle("Total Credit Lines by Late Fees")
+```
+The plot is shows that there's no correlation between paid_late_fees and total_credit_lines. My speculation is that there would be a positive relationship between both since people with more credit lines would probably have more paid late fees since they have more credit lines to keep track of. However, this could be because the data had many 0 values for paid_late_fees and the sample size was reduced too much. I think it would be useful to have a late fees incurred dataset instead of paid late fees as the fees could be not paid. In addition, I am realizing now that the paid_late_fees referrs to paid late fees on the loan and not on the credit card. That explains why there is no correlation. 
+
+For the last visualization, I am exploring the correlation between grade and total credit lines
+
+```{r}
+ggplot(loans, aes(x=total_credit_lines, color=grade)) +
+  geom_bar() + 
+  ggtitle("Total Credit Lines by grade") +
+  theme(panel.background = element_rect(colour = "#6D9EC1"))
+```
+
+## Interest Rate Prediction
+
+The first model I am creating is very simple and uses the elements I've been investigating prior. I am first making a linear regression model with annual income + total debit limit as the independent variables and interest rate as the dependent variable. 
+```{r}
+reg<- lm(interest_rate ~ annual_income + total_debit_limit, data = loans)
+summary(reg)
+```
+To better visualize this output and analyze its meanings, I will first create a histogram to visualize the residuals 
+
+```{r}
+ggplot(data = loans, aes(reg$residuals)) +
+  geom_histogram(binwidth = 1, color = "black", fill = "blue") +
+  theme(panel.background = element_rect(fill = "white"),
+        axis.line.x = element_line(),
+        axis.line.y = element_line()) +
+  ggtitle("Histogram for Regression Model Residuals")
+```
+The goal of the histogram is to see if the data is normal around 0. Since it's not and slightly right skewed, it exemplifies that the model does not fit the data too well. Perhaps the variables I chose were not correlated enough. In addition, the R squared shows that it's not a well-fitted model since it's very far away from 1. To confirm, I am making one more visualization to check for model fitness. 
+
+```{r}
+ggplot(data = loans, aes(x = total_debit_limit + annual_income, y = interest_rate)) +
+  geom_point() +
+  stat_smooth(method = "lm", col="dodgerblue") +
+  theme(panel.background = element_rect(fill = "white"),
+        axis.line.x = element_line(),
+        axis.line.y = element_line()) +
+  ggtitle("Linear Model Fitted")
+```
+
+As one can see, this graph represents the inaccuracy and un-usability of my model. 
+
+##Conclusion
+My response only includes one algorithm to predict interest rate. I would like to spend more time and develop a more thorough model correcting my mistakes but I don't have the time as I work 20 hours a week and take 5 classes. 
+For model enhancements, I would test the correlation between variables before using them and include more variables. I would probably include around 3 or 4 because I don't want the model to become overfitted. 
+I assume that interest rate is calculated using a complex set of variables and not just income and total debit. My approach is very linear since I assumed income is a big factor in interest rate. I would be interested in looking at how assets play a role and age + employment. 
