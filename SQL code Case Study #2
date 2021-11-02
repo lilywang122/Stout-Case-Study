@@ -23,3 +23,15 @@ FROM `stout-case-study.mi.file`,
 FROM `stout-case-study.mi.file`
 WHERE year = 2016)
 WHERE customer_email NOT IN (user2016) AND NOT IN (user2015)
+
+SELECT COUNT(DISTINCT customer_email)
+FROM `stout-case-study.mi.file`
+WHERE year = 2015
+
+SELECT COUNT(DISTINCT customer_email)
+FROM `stout-case-study.mi.file`
+WHERE year = 2016
+
+SELECT COUNT(DISTINCT customer_email)
+FROM `stout-case-study.mi.file`
+WHERE year = 2017
