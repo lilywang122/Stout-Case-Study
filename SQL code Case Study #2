@@ -1,0 +1,25 @@
+SELECT SUM(net_revenue)
+FROM `stout-case-study.mi.file` 
+WHERE year = 2015
+
+SELECT SUM(net_revenue)
+FROM `stout-case-study.mi.file` 
+WHERE year = 2016
+
+SELECT SUM(net_revenue)
+FROM `stout-case-study.mi.file` 
+WHERE year = 2017
+
+SELECT SUM(net_revenue) 
+FROM `stout-case-study.mi.file`,
+(SELECT customer_email as user2015
+FROM `stout-case-study.mi.file`
+WHERE year = 2015)
+WHERE customer_email NOT IN (user2015)
+
+SELECT SUM(net_revenue) 
+FROM `stout-case-study.mi.file`,
+(SELECT customer_email as user2016
+FROM `stout-case-study.mi.file`
+WHERE year = 2016)
+WHERE customer_email NOT IN (user2016) AND NOT IN (user2015)
